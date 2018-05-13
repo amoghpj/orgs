@@ -1,0 +1,945 @@
+# -*- mode: org; -*-
+#+TITLE: Some hints at setting up various utilities for emacs and otherwise
+
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/styles.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/github-light.css"/>
+#+HTML_HEAD: <script src="./js/scale.fix.js"></script>
+#+INFOJS_OPT: view:info 
+
+* General Instructions for this document:
+** Formatting:
+Since this document will be continuously updated, I should follow some rules to keep these notes sensible after any length of time
+- The *Heading* of each entry should be brief
+- Include a brief *Description* of what the entry does
+- Use the =#+BEGIN_EXAMPLE= environment to include code snippets.
+- Use Time stamps at the beginning/end of each entry with C-c . to ensure each entry has a date associated with it. (Older entries do not have a time-stamp)
+<2016-08-03 Wed>
+* Emacs hints:
+** Graphviz resources:
+- .emacs has been setup
+- [[http://www.tonyballantyne.com/graphs.html#sec-4-1]]
+** Ditaa
+<2016-11-28 Mon>
+I finally setup ditaa.
+Simply install ditaa using apt install.
+Add make sure the path is set using (setq org-ditaa-jar-path "/usr/bin/ditaa") /Note: I used whereis to find the path to ditaa/
+Make sure org-babel knows that you are using ditaa.
+The drawing is done manually, which makes ditaa a little less attractive to use to make large flow charts. But there is html support, soo it could potentially be useful in makeing simple illustrations.
+#+BEGIN_SRC ditaa :file hello-world.png
++--------------+    +---------------+
+| Hello World! |--->| Some more text|--+ 
++--------------+    +---------------+  |
+       ^                               V 
+       |   +---+    +--------+      /--------\
+       |   |   |    |        |      | cBLU   |
+       +---+   +----+        +------|  do    |
+                                    |they?   |
+                                    \--------/                                     
+#+END_SRC
+ 
+** SpellCheck modes
+- M-x ispell enters into a temporary spell-check mode and suggests correct spellings.
+  - Use /a/ to word to dictionary
+  - Works well in latex files as well
+- Flyspell mode is useful in text documents as it highlights incorrect spellings.
+  - Not useful in .tex files as it doesn't play well with Auto-Complete mode
+<2016-08-03 Wed>
+** Org mode tutorials and help
+[[http://doc.norang.ca/org-mode.html]]
+** Org Mode LaTeX
+<2016-08-18 Thu>
+*** Org-ref
+- Available for Emacs24.5 and higher
+- Still need to juggle around a litle to get it to work
+- Add bibliographystyle:<> at the end of the file to ensure that the bibliography is created
+*Known Bugs*
+- Does not import bib info from all pdfs or dois
+- dois work on crossref website but are inaccurate inside the crossref-lookup function
+
+*** CdLaTeX
+- Built to play well with latex mode in Org.
+- Has shortucts for environment definition and various math definitions that work with TAB completion
+*** Latex export 
+Added the following to .emacs, which executes those commands in that order for every latex export from Org:
+
+#+BEGIN_EXAMPLE
+(setq org-latex-pdf-process (quote ("pdflatex %f" "bibtex %b" "bibtex %b" "pdflatex %f" "pdflatex %f")))
+#+END_EXAMPLE
+<2016-10-06 Thu>
+- Modified export to include syntax highlighting:
+#+BEGIN_EXAMPLE
+(setq org-latex-pdf-process
+ (quote ("pdflatex -shell-escape -interaction nonstopmode %f" "bibtex %b" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode %f" "pdflatex -shell-escape -interaction nonstopmode %f")))
+#+END_EXAMPLE
+** Org-Beamer
+<2016-09-16 Fri>
+- Require ox-latex
+- It changes the export settings to include beamer specific settings.
+- After opening a new (empty) document, use C-c C-e # and type beamer to get a default template for beamer.
+** Org-html export settings
+<2017-01-25 Wed>
+*** Creating folder structure for org-publish
+- Create a project folder with a folder for css, js etc, and an index.org. Taken from [[http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][here]] 
+#+begin_center
+~/org/
+   |- css/
+   |  `- stylesheet.css
+   |- img/
+   |- index.org
+   `- remember.org
+#+end_center
+- Put the following in your init.el:
+#+BEGIN_SRC elisp
+(require 'ox-publish)
+(setq org-publish-project-alist
+      '(("org-notes"
+ :base-directory "~/SOURCE_DIRECTORY/"
+ :base-extension "org"
+ :publishing-directory "~/TARGET_DIRECTORY/"
+ :recursive t
+ :publishing-function org-html-publish-to-html
+ :headline-levels 4             ; Just the default for this project.
+ :auto-preamble t
+ )
+	("org-static"
+ :base-directory "~/SOURCE_DIRECTORY/"
+ :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
+ :publishing-directory "~/TARGET_DIRECTORY/"
+ :recursive t
+ :publishing-function org-publish-attachment
+ )
+	("org" :components ("org-notes" "org-static"))))
+#+END_SRC
+- To publish a project, execute: =C-u M-x org-publish ENTER org ENTER=
+*** Setting up Org-html export templates
+- Create .emacs.d/org-templates/
+- Add template files named level-0.org,..,level-N.org depending on the depth of the project directory, i.e if you want different templates for files in different depths of SOURCE_DIRECTORY.
+- Add HTML headers in level-x.org files with relative paths to to css, js etc wrt SOURCE_DIRECTORY, eg:
+#+BEGIN_SRC 
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/styles.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/github-light.css"/>
+#+HTML_HEAD: <script src="./js/scale.fix.js"></script>
+#+END_SRC
+- Execute org-publish as explained above.
+- Voila! full webpage available at file:///PATH_TO_TARGET_DIRECTORY/
+** Plotting in org-mode
+<2016-09-14 Wed>
+- Just an experiment to plot data from an org-table!
+
+#+PLOT: title:"Citas" ind:1 deps:(3) type:2d with:histograms set:"yrange [0:]"
+| Sede      | Max cites | H-index |
+|-----------+-----------+---------|
+| Chile     |    257.72 |   21.39 |
+| Leeds     |    165.77 |   19.68 |
+| Sao Paolo |     71.00 |   11.50 |
+| Stockholm |    134.19 |   14.33 |
+| Morelia   |    257.56 |   17.67 |
+|-----------+-----------+---------|
+*INCOMPLETE ENTRY*
+** Regexp in Emacs
+- To find and replace text: M-x replace-string
+- To find and replace regexp: M-x replace-regexp
+- Newline character is: C-q C-j [C-q puts a quote, C-j is representation of newline]
+*** Visual Regexp
+- Emulates the visual search and replace that evil mode offers.
+- Currently, I have bound  =vr/replace= to "C-c r" and =vr/query-replace= to "C-c q"
+- Immensely speed up search replace without having to M-x into the tool
+- Search is now helm-swoop(?)
+** Basics:
+*** Switching Buffers: 
+- C-x left/right
+- C-x b to list all buffers
+<2016-08-03 Wed>
+*** Window navigation
+There are three ways by which one can navigate windows in emacs:
+1. Basic inbuilt keybinding =C-x o= which cycles through windows
+2. Use a keybinding such as this
+#+BEGIN_SRC elisp
+(when (fboundp 'windmove-default-keybindings)
+  (windmove-default-keybindings))
+#+END_SRC
+and navigate using =Shift+arrow keys=
+ The problem with this is that this keybinding affects list structure in org-mode, so I have started using
+3. ... the switch-window package, which rebinds =C-x o=
+Simply install using MELPA and add this to your init.el
+#+BEGIN_SRC elisp
+(global-set-key (kbd "C-x o") 'switch-window)
+#+END_SRC
+Might be a little distracting though...
+** Miscellaneous 
+*** Structure of init.el file
+<2016-08-18 Thu>
+ALWAYS put the following at the top of the init.el file. 
+
+#+BEGIN_EXAMPLE
+;; (when (>= emacs-major-version 24)
+;; 	(require `package)
+;; 	(add-to-list 
+;; 	`package-archives 
+;; 	`("melpa" . "https://melpa.org/packages/")
+;; 	t)
+;; 	(package-initialize))
+#+END_EXAMPLE
+** Customizing themes:
+Beyond loading predefined themes, to modify themes(including fonts, background and foreground colors etc.) further:
+1. M-x cutomize-face
+2. default
+3. Change the values in the list of options presented.
+4. Apply and Save will save the settings in the .emacs
+*** Specifics:
+<2016-09-16 Fri>
+**** Background: set-background-color
+**** Foreground: set-foreground-color
+**** M-x disable-theme will disable current theme, or specified theme.
+
+** Wishlist
+*** DONE Org-ref
+    CLOSED: [2016-09-16 Fri 11:47]
+- Currently not installed
+- Requires Emacs 24.4
+<2016-08-03 Wed>
+** Org gifs
+   [[/home/amogh/Downloads/giphy.gif][Cat gif]]
+** Org-capture and org-refile
+<2016-12-26 Mon>
+- Setup org-capture, org-refile, and hooked firefox up with org-protocol
+*** Setting up Org-protocol
+- Added org-protocol-cpature-html to load path.
+- Also requires org-protocol
+- Add the following to init.el:
+#+BEGIN_SRC 
+;; Org-capture setup
+(define-key global-map "\C-cc" 'org-capture)
+(server-start)
+(require 'org-protocol) 
+(add-to-list 'load-path "~/.emacs.d/org-protocol-capture-html/")
+(require 'org-protocol-capture-html)
+; Targets include this file and any file contributing to the agenda - up to 5 levels deep
+(setq org-refile-targets '((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5)))
+#+END_SRC
+*** Setting up Firefox org-capture
+- Get the Firefox org-capture plugin [[http://chadok.info/firefox-org-capture/][here]]
+- To make Firefox aware of emacs, setup as follows:
+- Add the following to ~/.local/share/applications/org-protocol.desktop:
+#+BEGIN_SRC 
+[Desktop Entry]
+Name=org-protocol
+Exec=emacsclient %u
+Type=Application
+Terminal=false
+Categories=System;
+MimeType=x-scheme-handler/org-protocol;
+#+END_SRC
+- Add the following boolean variable to about:config in the browser: 
+network.protocol-handler.expose.org-protocol
+And set it to TRUE
+- Add the following bookmarklet to firefox:
+#+BEGIN_SRC 
+javascript:location.href%20=%20'org-protocol://capture-html://w/'%20+%20encodeURIComponent(location.href)%20+%20'/'%20+%20encodeURIComponent(document.title%20||%20"[untitled%20page]")%20+%20'/'%20+%20encodeURIComponent(function%20()%20{var%20html%20=%20"";%20if%20(typeof%20document.getSelection%20!=%20"undefined")%20{var%20sel%20=%20document.getSelection();%20if%20(sel.rangeCount)%20{var%20container%20=%20document.createElement("div");%20for%20(var%20i%20=%200,%20len%20=%20sel.rangeCount;%20i%20<%20len;%20++i)%20{container.appendChild(sel.getRangeAt(i).cloneContents());}%20html%20=%20container.innerHTML;}}%20else%20if%20(typeof%20document.selection%20!=%20"undefined")%20{if%20(document.selection.type%20==%20"Text")%20{html%20=%20document.selection.createRange().htmlText;}}%20var%20relToAbs%20=%20function%20(href)%20{var%20a%20=%20document.createElement("a");%20a.href%20=%20href;%20var%20abs%20=%20a.protocol%20+%20"//"%20+%20a.host%20+%20a.pathname%20+%20a.search%20+%20a.hash;%20a.remove();%20return%20abs;};%20var%20elementTypes%20=%20[['a',%20'href'],%20['img',%20'src']];%20var%20div%20=%20document.createElement('div');%20div.innerHTML%20=%20html;%20elementTypes.map(function(elementType)%20{var%20elements%20=%20div.getElementsByTagName(elementType[0]);%20for%20(var%20i%20=%200;%20i%20<%20elements.length;%20i++)%20{elements[i].setAttribute(elementType[1],%20relToAbs(elements[i].getAttribute(elementType[1])));}});%20return%20div.innerHTML;}());
+#+END_SRC
+- Finally run the following command in the terminal
+#+BEGIN_SRC 
+update-desktop-database ~/.local/share/applications/
+#+END_SRC
+NOTE: 
+I also tried setting it up using the command =kbuildsycoca4=. Pretty sure the first one did the trick though.
+*** Helpful links
+- [[http://tech.memoryimprintstudio.com/org-capture-from-external-applications/][Here]] is a comprehensive guide to setting up org-capture from the browser.
+- [[http://stackoverflow.com/questions/7464951/how-to-make-org-protocol-work][This]] answer on Stack Overflow helped in  setting up org-protocol
+- [[https://blog.sleeplessbeastie.eu/2016/04/22/how-to-use-org-capture-from-system-tray/][This]] might be useful for setting up the system tray described in the post. *Haven't tried it yet*
+*** Known issues on my system
+- An emacs instance needs to be open for org-capture to work from Firefox. Is this how emacsclient is supposed to work?
+** Inline images in Org-mode
+<2016-12-27 Tue>
+- Use =M-x org-toggle-inline-images= to toggle displaying inline images in an org-file
+- I have set =(setq org-image-actual-width nil)= in my init.el so I can control the size of the image displayed irrespective of its actual resolution/dimensions
+- Use the shortcut =C-c C-x C-v=
+*** Example: This beautiful image from [[http://zoomq.qiniudn.com/ZQScrapBook/ZqFLOSS/data/20071229102847/][here]]
+#+ATTR_ORG: :width 300
+[[./img/woman-writing-cheatsheet-with-bubble.png]]
+** Source highlighting in org-mode src blocks
+<2016-12-27 Tue>
+- Set the following in your .emacs:
+#+BEGIN_SRC 
+(setq org-src-fontify-natively t)
+#+END_SRC
+- Further, to highlight code after html export, get the =htmlize= package. I installed it using melpa, but there are some answers on Stack Exchange that ask you to byte-compile it. Pretty nifty!
+** Narrowing and Widening
+<2016-12-30 Fri>
+- Enabling =C-x n n= displays only the marked region. Super useful as files become bigger and uglier.
+- To widen, use =C-x n w=
+** Magit: Git for Emacs
+<2017-01-08 Sun>
+- Magit is a wonderful interface between emacs and git.
+- Use =M-x magit-status= to see the git status.
+- Hovering over file and hitting s stages the changes
+- Hitting c brings up a commit message buffer.
+- Finally, commit the changes using =C-c C-c=
+** Sessions in org-mode Src blocks
+<2017-01-12 Thu>
+- Figured that the best way to pass vaiables around in org-mode src blocks is to use sessions. =:var= doesnt work too well for dictionaries and such.
+Example:
+#+NAME: input-var
+#+BEGIN_SRC python :session variable-assignment
+varname=dict()
+
+varname={'today':'Thursday',
+         'yesterday':'Wednesday',
+         'tomorrow':'Friday'
+        }
+#+END_SRC
+
+#+BEGIN_SRC python :results value :session variable-assignment
+day=varname
+day['today']
+#+END_SRC
+#+RESULTS:
+: Thursday
+
+** Live Preview of org-mode html export files
+<2017-04-03 Mon>
+Check out this link [[http://emacsdump.blogspot.com/2015/09/org-mode-live-html-export-preview-in.html]]
+** Elpy and virtual environments
+<2017-05-08 Mon>
+Work system was having problems starting up a virtual environment, and there was a mismatch between the elpy version on python and that in emacs.
+Two resources turned out to be useful
+- This answer on StackExchange https://emacs.stackexchange.com/a/16638
+- This issue in Elpy: https://github.com/jorgenschaefer/elpy/issues/1001
+** Generate Graphics for org-reports
+[2017-11-16 Thu]
+I have made a couple of scripts to neatly create org-report graphics for a weekly summary with bar plots for effort per day and pie chart showing cumulative effort
+1. Create an org-file called export-reports.org. This file will contain the org-report tables for all your tags.
+2. Creating org-report tables:
+   - Assuming you have agenda files where you clock your effort with appropriate tags for tasks, create the following environment for ech tag that you want to generate a report for:
+   - Notice that you have to modify 3 variables, the NAME of this table, the SCOPE that has to point to agenda file(s) and the TAGS. If you want to include multiple tags in a single report, use '|' as the OR logic for including tags. Alternatively if you want to specify combinations of tags you can use the '&' logic to separate tags.
+#+BEGIN_EXAMPLE  
+#+NAME: tagname
+#+BEGIN: clocktable :maxlevel 4 :scope ("~/path/to/agenda/file.org") :block thisweek :tags "tagname"
+#+END: 
+#+END_EXAMPLE
+As an example, I have a tag =work= that encompasses all research-related tasks, for which I have a single agenda file =~/orgs/diary.org= , hence I will use the following table:
+#+BEGIN_EXAMPLE  
+#+NAME: work
+#+BEGIN: clocktable :maxlevel 4 :scope ("~/orgs/diary.org") :block thisweek :tags "work"
+#+END: 
+#+END_EXAMPLE
+3. Once you create such environments for /every/ tag that you want to include in the report, move the cursor to each environment and generate the report for that tag using the key combination =C-c C-x C-u=. This will update the clock table.
+4. In the same folder as your export-orgs.org file, add the following .el file, 
+
+#+BEGIN_SRC elisp
+;; SOURCE: https://emacs.stackexchange.com/a/16883
+
+(require 'org)
+
+(defun my-tbl-export (name)
+  "Search for table named `NAME` and export."
+  (interactive "s")
+  (show-all)
+  (let ((case-fold-search t))
+    (if (search-forward-regexp (concat "#\\+NAME: +" name) nil t)
+    (progn
+      (next-line)
+      (next-line)
+      (next-line)
+      (org-table-export (format "%s.csv" name) "orgtbl-to-csv")))))
+#+END_SRC
+5. Next, copy the org-report-processing.sh and generate-org-report.py into the desired location. Modify the path to the export-report.org folder in both scripts.
+6. Finally, simply run the shell script! This parses the export-report.org file and generates a list of tags, stored in tags.txt. Further, the elisp file is used to export all the report tables as individual .csvs. These files are read by the python script which finally generates plots summarizing the efforts.
+7. Get to work!  
+** C++ compiler in emacs
+** Scheduling and Calendar in org-mode
+[2018-01-03 Wed]
+- Found this amazing [[http://dept.stat.lsa.umich.edu/~jerrick/org_agenda_calendar.html][link that describes scheduling in org-mode]]
+** Org-timer
+[2018-01-03 Wed]
+C-c C-x 0 Starts a new timer
+C-c C-x - Add note at current timer time
+C-c C-c _ Stop timer
+C-c C-x ; Start countdown timer
+More info can be found [[https://orgmode.org/org.html#Timers][here]]
+* Emacs Lisp
+** Automatic relative filename completion
+<2018-04-11 Wed>
+Put together these string manipulation functions.
+#+BEGIN_SRC emacs-lisp
+(concat "~" (string-remove-prefix  (getenv "PWD") default-directory))
+#+END_SRC
+
+* LaTeX
+** Installing latex styles and packages in Fedora 25
+<2017-05-17 Wed>
+Use
+#+BEGIN_SRC sh
+sudo dnf install "tex(filename.sty)"
+#+END_SRC
+** Notes in Beamer:
+*USE /present filename.pdf/ in the commandline* 
+- Install pdfpc using 
+   sudo apt-get install pdf-presenter-console
+- In order to have a presentation with notes, use the beamer class WITHOUT the notes option.
+- Include the following headers:
+
+\usepackage{pdfpcnotes}
+\usepackage{pgfpages}
+
+- Add notes in the \pnote environment.
+- Run pdfpc in the commandline passing the file name as argument
+- To make bullets for notes, run these. I have currently redefined the command /pdfpc/ to run these already:
+    sed -i 's/\\\\/\n/g' slides.pdfpc
+    sed -i 's/\\par/\n\n/g' slides.pdfpc
+** Beamer Themes:
+- Currently using [[https://github.com/matze/mtheme][Metropolis]] theme
+<2016-08-03 Wed>
+** Changing beamer background theme
+<2018-01-20 Sat>
+#+BEGIN_EXAMPLE
+  \setbeamercolor{background canvas}{bg=violet}
+#+END_EXAMPLE
+** Miscellaneous:
+*** To specify absolute file paths:
+- Use \string~ instead of ~ to specify the home directory
+*** Fancy Quotes Environment:
+- To use a fancy quotes environment for quotations insert the following in the document:
+
+#+BEGIN_EXAMPLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Fancy Quotes%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{tikz}
+\usetikzlibrary{backgrounds}
+\makeatletter
+
+\tikzset{%
+  fancy quotes/.style={
+    text width=\fq@width pt,
+    align=justify,
+    inner sep=1em,
+    anchor=north west,
+    minimum width=\linewidth,
+  },
+  fancy quotes width/.initial={.8\linewidth},
+  fancy quotes marks/.style={
+    scale=8,
+    text=white,
+    inner sep=0pt,
+  },
+  fancy quotes opening/.style={
+    fancy quotes marks,
+  },
+  fancy quotes closing/.style={
+    fancy quotes marks,
+  },
+  fancy quotes background/.style={
+    show background rectangle,
+    inner frame xsep=0pt,
+    background rectangle/.style={
+      fill=gray!25,
+      rounded corners,
+    },
+  }
+}
+
+\newenvironment{fancyquotes}[1][]{%
+\noindent
+\tikzpicture[fancy quotes background]
+\node[fancy quotes opening,anchor=north west] (fq@ul) at (0,0) {``};
+\tikz@scan@one@point\pgfutil@firstofone(fq@ul.east)
+\pgfmathsetmacro{\fq@width}{\linewidth - 2*\pgf@x}
+\node[fancy quotes,#1] (fq@txt) at (fq@ul.north west) \bgroup}
+{\egroup;
+\node[overlay,fancy quotes closing,anchor=east] at (fq@txt.south east) {''};
+\endtikzpicture}
+
+\makeatother
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#+END_EXAMPLE
+*** Comments in 'draft' mode:
+<2016-08-03 Wed>
+- To include comments in latex documents with a ``draft mode'' use this:
+#+BEGIN_EXAMPLE
+%%%%%%%%%%%%%%%%%%%%%%%% Comment Color %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{ifthen}
+\newboolean{draft}
+% is this a draft?
+\setboolean{draft}{true}
+%\setboolean{draft}{false}
+\ifthenelse{\boolean{draft}}{%
+  %% Macros for editorial comments
+  \newcounter{comments}
+  \newcommand{\tmm}[1]{\addtocounter{comments}{1}{\color{Magenta}[TMM \thecomments: #1]}}
+  \newcommand{\jeff}[1]{\addtocounter{comments}{1}{\color{Blue}[Jeff \thecomments: #1]}}
+%  \newcommand{\alex}[1]{\addtocounter{comments}{1}{\color{Green}[Alex \thecomments: #1]}}
+  \newcommand{\amogh}[1]{\addtocounter{comments}{1}{\color{BurntOrange}[Amogh \thecomments: #1]}}	
+}{
+\newcommand{\tmm}[1]{}
+\newcommand{\amogh}[1]{}
+\newcommand{\jeff}[1]{}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#+END_EXAMPLE
+
+** Graphics:
+- Use the svg package, specifying \includesvg{filename-with-no-extension} instead of \input{filename.pdf_tex}
+- Use the \relscale{scalefactor} instead of font sizes specifiers. Expecially useful in resizing svgs and text in documents.
+- Learn more about TexTopo and Texshade
+** Bibtex:
+*** Hiding bibliography at the end while adding citations in the document
+<2016-10-03 Mon>
+- This helps in the special case where you want to manually define your style or something as ridiculous.
+Use the package bibentry, and instead of \bibliography, use \nobibliography
+** Wishlist
+* Linux
+** Ergonomics
+*** dmenu
+<2016-12-26 Mon>
+[[http://tools.suckless.org/dmenu/][Download link]]
+Configured keyboard shortcut alt-D to bring up dmenu on top of screen.
+*** tree
+Utility to create tree structure out of directories. 
+ 
+** Google Drive on Ubuntu
+<2016-12-28 Wed>
+- I have tried multiple times in the past to set up google drive on Ubuntu, I finally thought of it again today and got it to work
+- The trick is not to use Grive. Haven't tried Grive2 though..
+- Install =gnome-control-center= using
+#+BEGIN_SRC sh
+sudo apt install gnome-control-center gnome-online-accounts
+#+END_SRC
+- Nothing happend at first, so I restarted by system.
+- Then:
+  - In the terminal type gnome-control-center
+  - In the settings gui that opens up, go to Online Accounts and added an account by pressing the '+' sign at the bottom left corner.
+  - Select Google, grant permissions, and select the content that you want to access.
+  - In Nautilus, your drive should pop up as a mountable drive.
+- Voila!
+KNOWN ISSUES:
+It resyncs every time the window is opened, and can be pretty slow. Hope it doesnt depend on the internet speed :(
+** Wireless connection debugging
+<2017-01-10 Tue>
+*** Description:
+- In Ubuntu 16.04, using the Pandas Wireless wifi receiver, the wifi connection automatically disconnects very often.
+- The ping to the Google DNS goes through, but no other ping does.
+- I found a bunch of replies on stack-overflow and askubuntu, but none of the solutions have worked perfectly
+*** Debugging
+Some useful logs/properties to look up are:
+- iwconfig : specific configurations for wireless interface
+- sudo service network-manager restart : restarts the manager, works most often, but doesn't solve the problem
+- Currently have setup the bash alias "wifi" to execute the above command.
+- Using the solution describe [[http://askubuntu.com/questions/762198/16-04-lts-wifi-connection-issues][here]], I have exectued the following:
+Added =SUSPEND_MODULES="rt3290"=
+=echo "options rt3290be fwlps=N" | sudo tee /etc/modprobe.d/rt3290be.conf=
+- Might have to change it at some point if I get a different wifi receiver.
+- This didn't really help much, so I followed the second answer on [[http://askubuntu.com/questions/545238/how-to-install-wifi-driver-ralink-rt3290][this page]] 
+  - Got the patch for the RT3290 driver [[https://drive.google.com/file/d/0Bw6He1mvtZ9GSHRMYjhSeVhUMWc/view][here]]. I know, it is unsafe!
+  - Untarred and installed it as desribed.
+- For good measure, I am doing the recommended step of adding the commands from [[http://askubuntu.com/questions/760838/how-do-i-get-an-rt3290-wireless-card-to-work][this answer
+]]
+** Shell: Creating symbolic links
+<2017-05-18 Thu>
+#+BEGIN_SRC sh
+ln -s absolute/path/to/target path/to/destination/linkname
+#+END_SRC
+** Fedora repositories
+<2017-05-21 Sun>
+- Added RPMFusion repositories from the Software Center. Not sure how I can add it from the shell, the equivalent of adding a PPA?
+* Git
+** Cheatsheet
+<2017-02-13 Mon>
+From [[http://stackoverflow.com/a/1303394][stackoverflow]]
+# uncommited file to HEAD
+git diff <path>
+
+# uncommited file to before last commit
+git diff HEAD^ -- <path>
+
+# last commit to before last commit
+git diff HEAD^ HEAD -- <path>
+
+# difference between HEAD and n-th grandparent
+git diff HEAD~n HEAD -- <path>
+
+# Another cool feature is whatchanged command
+git whatchanged -- <path>
+* PyDSTool
+** Getting Started
+- Found a basic example [[http://www.ni.gsu.edu/~rclewley/PyDSTool/Tutorial/Tutorial_linear.html][here]]
+*** Basic 3-component negative feedback loop (of sorts)
+#+BEGIN_SRC
+from PyDSTool import *
+incons={'x':0,'y':0,'z':0}
+#def x_prod
+x_rec='kx-d*z'
+y_rec='k*x-d'
+z_rec='k*y-d*z'
+myvars={'x':x_rec,'y':y_rec,'z':z_rec}
+mypars={'kx':2,'k':2,'d':0.1}
+myDS=args()             # This is important. It sets up an empty `system' to which we will assign attributes
+myDS.name='x_Kin'       
+myDS.pars=mypars
+myDS.varspecs=myvars
+myDS.ics=incons
+myDS.tdata=[0,20]
+myODE=Generator.Vode_ODEsystem(myDS)    # Next important step. This calls the Generator thing and tests for consistency
+traj=myODE.compute('first')             # Not really sure what the argument is. Can be anything I think? This computes the trajectories
+pts=traj.sample()                       # Can pass time steps as argument. This generates the list of points            
+plt.plot(pts['x'],pts['z'])             # Plot
+plt.show()                              # Displays plot
+#+END_SRC
+** Bifurcations and more
+- PyDSTool comes with [[http://www.ni.gsu.edu/~rclewley/PyDSTool/PyCont.html#head-80e716dddbabca5f9aabaacdbdefd5d2eeeb6f47][Pycont]]
+- This is an example on the website:
+#+BEGIN_SRC python 
+"""Using PyCont to do path following to find a zero level set of a nonlinear
+function. Example is an ellipse.
+
+Robert Clewley, August 2008.
+"""
+
+from PyDSTool import *
+
+# f(y) = 0 is the required form
+# where f(y) = x^2 /2 + y^2 - 1
+DSargs = args(name='ellipse')
+
+# treat one of the coordinates as a parameter for PyCont to use
+DSargs.pars = {'x': 0}
+
+# the other coordinate is a 'variable'
+DSargs.varspecs = {'y': 'x*x/2.+y*y-1'}
+
+# A starting point on the ellipse, if known. Let's pretend it's a tougher
+# problem and we only know a point that's close to it: (x,y) = (0, 1.1)
+# PyCont will find the closest point that's actually on the curve before
+# doing the path following
+DSargs.ics = {'y': 1.1}
+
+# Define an initial value problem (ODE) with f(x) as the right hand side.
+# For this example, it is just a formality to present PyCont with f(x).
+# In examples involving fixed points or limit cycles of dynamical systems,
+# this ODE will have a practical meaning.
+testODE = Vode_ODEsystem(DSargs)
+
+# Create an instance of PyCont
+P = ContClass(testODE)
+
+# EP-C = equilibrium point curve
+PCargs = args(name='test', type='EP-C')
+PCargs.freepars = ['x']
+PCargs.StepSize = 1e-3
+PCargs.MaxNumPoints = 800
+PCargs.MaxStepSize = 1e-2
+
+# Declare a new curve based on the above criteria
+P.newCurve(PCargs)
+
+# Do path following in the 'forward' direction. Max points is large enough
+# to ensure we go right around the ellipse (PyCont automatically stops when
+# we return to the initial point - unless MaxNumPoints is reached first.)
+P['test'].forward()
+
+sol = P['test'].sol
+
+print "There were %i points computed" % len(sol)
+# solution points:
+print sol
+
+print "\nLabels for each point in sol pointset give diagnostic information about"
+print "first derivative of the point along the curve ('V' entry) and the arc "
+print "length parameter shows distance along the curve so far ('ds' entry)."
+
+print "\nVelocity around curve is always 1, e.g. look at 100th point"
+print "norm(Point(sol[100].labels['EP']['data'].V)) =", \
+      norm(Point(sol[100].labels['EP']['data'].V))
+
+print "... at which we have travelled distance ds =", \
+      sol[100].labels['EP']['data'].ds
+
+print "\nThis distance is equal to 100 * the max step size (0.01) which PyCont"
+print "deemed sufficient for the desired accuracy."
+
+# easy way to plot the result
+P.display(curves=['test'], coords=('x','y'))
+#+END_SRC
+
+#+RESULTS:
+
+- Need to understand how this works
+  
+** Decoding ParamEst
+<2017-02-17 Fri>
+The default algorithmic parameters passed for Parameter estimation are:
+#+BEGIN_SRC python
+testDSargs = args(algparams={'init_step':0.02, 'strictopt':True},
+              varspecs='...',
+              xdomain='...'#Needs to be specified? Example:{'w':[0, 1000]},
+              tdata=trange,
+              pars='...',
+              checklevel=2,
+              ics='...',
+              name='test_model_par'
+              )
+#+END_SRC
+The following is a simpler example code that tries to fit the growth rate and carrying capacity simultaneously:
+#+BEGIN_SRC python
+from __future__ import print_function
+
+# PyDSTool imports
+from PyDSTool import *
+from PyDSTool.Toolbox.ParamEst import LMpest, L2_feature
+import numpy as np
+# Other imports
+import time
+from copy import copy
+
+###############################################################################
+# Import reference trajectory
+PATH='/home/jamogh/Documents/python_experiments/'
+refTraj,=loadObjects(PATH+'input-to-fit.sav')
+maxt=10
+T=np.linspace(0,maxt,100)
+plotData=refTraj(T)['N']
+# Plot reference curve
+plt.plot(T,plotData,'k',label='Reference Curve')
+###############################################################################
+# Define Model that you want to fit
+ToEstimateModel=args(algparams={'init_step':0.02, 'strictopt':True},
+              varspecs={'N':'r*N*(1-N/K)'},
+              xdomain={'N':[0, 100]}, # Unclear why this is important
+              tdata=[0,maxt], # From definition of T
+              pars={'r':0.01,'K':10},  # initial guess
+              checklevel=2, # absolutely no idea what this does
+              ics={'N':0.5},
+              name='LogGrowthestimator')
+InitialGuessDS=Vode_ODEsystem(ToEstimateModel)
+initial_guess_points=InitialGuessDS.compute('iniGue').sample()
+# Plot initial Guess
+plt.plot(initial_guess_points['t'],initial_guess_points['N'],'g')
+###############################################################################
+
+ftol=3e-3
+
+# use L2-norm of data (sum of squares)
+
+L2_similarity_w = L2_feature('L2_similar', pars=args(t_samples=T,
+                                                   trange=[0,maxt],
+                                                   coord='N',
+                                                   tol=ftol,
+                                                   debug=True))
+
+pest_condition_w = condition({L2_similarity_w : True})
+
+###########################################################################################
+class ext_iface(extModelInterface):
+    # holds the data (external from the model)
+    pass
+
+class int_iface(intModelInterface):
+    # holds the test model
+    pass
+
+pest_data_interface_w = ext_iface(refTraj,
+                   pest_condition_w)
+
+c = context([ (pest_data_interface_w, int_iface) ])
+############################################################################################
+testModel_par = embed(Generator.Vode_ODEsystem(ToEstimateModel)) # creating model objject. What does Embed do?
+
+
+### Function call
+pest_pars = LMpest(freeParams=['r','K'], # specifying that r is the target parameter 
+                 testModel=testModel_par,
+                 context=c
+                )
+
+start_time = time.clock()
+pestData_par = pest_pars.run(parDict={'ftol': ftol,
+                                      'xtol':1e-3},
+                             verbose=True)
+print('... finished in %.4f seconds\n' % (time.clock()-start_time))
+
+bestFitModel_par = pestData_par['sys_sol']
+Nest_plotData_par = bestFitModel_par.sample('test_iface_traj', dt=0.02,
+                                                           tlo=0,#min(trange),
+                                                           thi=maxt,#max(trange),
+                                                precise=True)
+plt.plot(Nest_plotData_par['t'],Nest_plotData_par['N'],'r--',label='Query trajectory, best fit')
+plt.show()
+
+#+END_SRC
+
+** Converting data to trajectory
+<2017-03-18 Sat>
+- Use Pointset to convert numpy arrays to pts. Then use pointset_to_traj() to convert to trajectory that can be used to fit model
+#+BEGIN_SRC python
+
+#+END_SRC
+* DE
+** Info
+<2017-02-16 Thu>
+*** Rationale
+Using PyDSTool for data fitting is a pain. Despite reading the pickled generator object, the amount of time PyDSTool takes to compute the trajectory for each paramter set is incredibly slow. Moreover, the inbuilt ParamEst package is complicated. Period. I have not made head or tail of the model interfaces, and ideally should spend time thinking about that as well.
+Taking the lazy way out, I asked Dr. Tian Hong for advise on parameter estimation when using PyDStool, and suggested that I explore Differential Evolution for data ditting.
+*** What is Differential Evolution?
+[[http://www1.icsi.berkeley.edu/~storn/code.html][DE]]
+* Python
+** Comet implementation in Python
+<2016-09-21 Wed>
+Found this piece of code on the internet:
+#+begin_src python
+def comet(x, y, fmt='', step=1, **kwargs):
+    l, = plt.plot(x, y, fmt, **kwargs)
+    num_points = len(x)
+    for i in xrange(1, num_points + 1, step):
+        l.set_data(x[:i], y[:i])
+        plt.draw()
+    l.set_data(x, y)
+    plt.draw() 
+#+end_src
+** File IO
+<2017-02-13 Mon>
+#+BEGIN_SRC python
+import os 
+# Check if file exists. Returns boolean
+FullSimExists=os.path.isfile('./full-sim-obj.sav')
+# For absolute paths
+from os.path import expanduser
+home = expanduser("~")
+# Create directory if it doesn't exist
+if not os.path.isdir(PATH):
+    os.makedirs(PATH)
+#+END_SRC
+** Obtaining data time info
+<2017-02-13 Mon>
+#+BEGIN_SRC python
+import time
+DATE=time.strftime("%Y%m%d")   
+#+END_SRC
+** Qt designer
+<2017-09-16 Sat>
+How to make a simple UI in python
+- Qtdesigner comes with anaconda
+- run =designer= from terminal, create layout and save it as a .ui file
+- use pyuic5 tool to convert ui to py in the terminal
+#+BEGIN_SRC bash
+pyuic5 inputFname.ui -o outputFname.py
+#+END_SRC
+- Make sure PyQt5 is installed!
+- Once the .py file is defined, make instance of file under main(). Something like the following should work:
+#+BEGIN_SRC python
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    form = ExampleApp()
+    form.show()
+    app.exec_()
+#+END_SRC
+- Multiple challenges right now, some of which include
+  - how do I extract values from sliders etc?
+  - how do I pass variable values from the qt window?
+- Most of these questions will seem self evident once I understand how classes and inheritance work in python
+** PyAudioAnalysis
+[2017-12-22 Fri]
+- Had to do the following to install all the dependencies on Fedora 27:
+- 
+** Jupyter themes
+<2018-02-23 Fri>
+Install jupyterthemes using pip:
+#+BEGIN_SRC python
+pip install jupyterthemes --user
+#+END_SRC
+Activate a theme using =jt=
+#+BEGIN_SRC bash
+jt -t gruvboxd
+#+END_SRC
+* Github
+** Blogging With Jekyll
+<2016-12-24 Sat>
+- /Installed Jekyll using sudo apt install jekyll/
+- Clone a username.github.io repo
+- Run a server using =jekyll serve --config _config.yml=
+- Add pages in the _posts/ folder with format YYY-MM-DD-TITLE.md
+- pushing back to master will update the webpage
+* Docker
+** Intro to Docker
+<2018-01-29 Mon>
+- Start docker daemon:
+ #+BEGIN_SRC bash
+sudo docker service start
+#+END_SRC
+- Binding volumes:
+#+BEGIN_SRC bash
+-v /host/path:/docker/container/path
+#+END_SRC
+
+* Audio/Video editing
+** Creating video from pngs using blender
+<2017-05-21 Sun>
+Found these instructions useful
+https://danielpocock.com/quick-start-blender-video-editing
+- Open each image individully in blender, this makes it easy to position them properly. I could't align them when they were imported at the same time.
+- Modify this script to convert the final exported pngs to webm, or modify it to use ffmpeg to directly convert to avi or mp4
+#+BEGIN_SRC sh
+#!/bin/bash -e
+# Set this to match the project properties
+FRAME_RATE=25
+
+# Set this to the rate you desire:
+TARGET_BITRATE=1000
+
+WORK_DIR=${HOME}/Videos
+PNG_DIR=${WORK_DIR}/frames
+YUV_FILE=${WORK_DIR}/video.yuv
+WEBM_FILE=${WORK_DIR}/video.webm
+AUDIO_FILE=${WORK_DIR}/audio-mixed.ogg
+
+NUM_FRAMES=`find ${PNG_DIR} -type f | wc -l`
+
+png2yuv -I p -f $FRAME_RATE -b 1 -n $NUM_FRAMES \
+    -j ${PNG_DIR}/%05d.png > ${YUV_FILE}
+
+vpxenc --good --cpu-used=0 --auto-alt-ref=1 \
+   --lag-in-frames=16 --end-usage=vbr --passes=2 \
+   --threads=2 --target-bitrate=${TARGET_BITRATE} \
+   -o ${WEBM_FILE}-noaudio ${YUV_FILE}
+
+rm ${YUV_FILE}
+
+mkvmerge -o ${WEBM_FILE} -w ${WEBM_FILE}-noaudio ${AUDIO_FILE}
+
+rm ${WEBM_FILE}-noaudio
+#+END_SRC
+* Gimp
+** Exporting layers as separate PNG images
+<2017-02-22 Wed>
+- Export image as Open Raster (.ora)
+- This creates a zip-file that stores all the layers as individual pngs
+- Type =file-roller myfile.ora=
+- Save =data= folder, which will contain all the individual PNG images of layers.
+* Misc
+** Hemingway
+[[http://www.hemingwayapp.com/][Website]]
+- Seems like an interesting way to keep track of sentence structure and readability
+** Indic Language support
+<2016-12-25 Sun>
+- Installed emacs-intl-fonts package using sudo apt install
+- Set path using (add-to-list 'bdf-directory-list "/usr/share/emacs/fonts/bdf")
+- example:
+मेरा नाम है अमोघ जालीहाळ
+<2017-03-24 Fri>
+=C-x RETURN C-\ input=
+Select input language, then use =C-\= to switch between default input and specified language
+** Kannada/Telugu fonts
+<2017-03-24 Fri>
+Installed in ubuntu 16.04 using =sudo apt install fonts-knda fonts-telu=
+** Regex
+<2017-01-10 Tue>
+- Found this nice tool to learn and contruct regular expressions
+http://regexr.com/
+* Hosting
+** Get a temporary domain name
+[2017-11-27 Mon]
+- [[www.noip.com]] requries a signup, and after some setup with port forwarding, you can get temporary domain name
+* Ethereum
+** Metamask :ATTACH:
+   :PROPERTIES:
+   :Attachments: METAMASK
+   :ID:       9f57ebe5-7603-41eb-a1fa-779f8d21d399
+   :END:
+
